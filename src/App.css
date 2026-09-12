@@ -345,3 +345,24 @@ button {
   padding: 6px 14px;
   border-radius: 999px;
 }
+
+/* Hidden group */
+/* The UA's `[hidden] { display: none }` loses to `.card { display: flex }`,
+   so the attribute needs author-CSS backup — a classic `hidden` caveat. */
+.hidden-row .card[hidden] {
+  display: none;
+}
+
+.hidden-row.peek .card[hidden] {
+  display: flex;
+  opacity: 0.45;
+  border: 2px dashed var(--accent-border);
+}
+
+label.badge {
+  cursor: pointer;
+
+  input {
+    accent-color: var(--accent);
+  }
+}

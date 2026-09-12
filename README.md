@@ -22,7 +22,7 @@ Only the first two are adapted from the official docs; the rest are original.
 Notes from building this:
 
 - The `FragmentInstance` methods are typed via `@types/react-dom`'s `declare module 'react'` augmentation, which only loads if the `react-dom` root module is in the type graph — see `src/fragment-instance.d.ts`, which also declares `compareDocumentPosition` (shipped in react-dom 19.3.0 but missing from `@types/react-dom` 19.3.0).
-- Observed quirk in react-dom 19.3.0: `compareDocumentPosition` for a node *following* the fragment alternates between `DOCUMENT_POSITION_FOLLOWING` (4) and `DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC` (32) on every other render of the fragment — the internal fiber-tree validation appears to compare fibers across alternate generations. Positions *preceding* and *inside* the fragment are stable.
+- Observed quirk in react-dom 19.3.0: `compareDocumentPosition` for a node *following* (or *preceding*) the fragment alternates between the correct bitmask and `DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC` (32) on every other render of the fragment — the internal fiber-tree validation appears to compare fibers across alternate generations. Positions *inside* the fragment are stable. See [`docs/upstream-issue-compare-document-position.md`](./docs/upstream-issue-compare-document-position.md) for a draft bug report and [`docs/repro-compare-document-position.html`](./docs/repro-compare-document-position.html) for a standalone reproduction.
 
 ## Getting started
 

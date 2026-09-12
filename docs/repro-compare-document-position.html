@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>FragmentInstance.compareDocumentPosition repro</title>
+<p>
+  Click the button repeatedly. Each click calls
+  <code>fragmentRef.current.compareDocumentPosition(afterSibling)</code> and
+  then triggers a re-render by storing the result in state. Expected: always
+  <code>4</code> (DOCUMENT_POSITION_FOLLOWING). Actual in react-dom 19.3.0:
+  alternates <code>4, 32, 4, 32, …</code> (32 =
+  DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC).
+</p>
+<div id="root"></div>
+<script type="module">
+  import {
+    createElement as h,
+    Fragment,
+    useRef,
+    useState,
+  } from 'https://esm.sh/react@19.3.0'
+  import { createRoot } from 'https://esm.sh/react-dom@19.3.0/client'
+
+  function App() {
+    const fragmentRef = useRef(null)
+    const [results, setResults] = useState([])
+    return h(
+      'div',
+      null,
+      h(
+        'button',
+        {
+          onClick: () => {
+            const mask = fragmentRef.current.compareDocumentPosition(
+              document.getElementById('after'),
+            )
+            // The state update re-renders, which flips the fiber/alternate
+            // generation before the next click.
+            setResults((prev) => [...prev, mask])
+          },
+        },
+        'compareDocumentPosition(afterSibling)',
+      ),
+      h(Fragment, { ref: fragmentRef }, h('p', null, 'fragment child')),
+      h('p', { id: 'after' }, 'sibling after the fragment'),
+      h(
+        'pre',
+        { id: 'results' },
+        `results:  ${results.join(', ')}\nexpected: ${results.map(() => '4').join(', ')}`,
+      ),
+    )
+  }
+
+  createRoot(document.getElementById('root')).render(h(App))
+</script>

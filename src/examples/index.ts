@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import { FocusGroup } from './FocusGroup.tsx'
 import { FragmentGhost } from './FragmentGhost.tsx'
 import { GroupEvents } from './GroupEvents.tsx'
+import { HiddenGroup } from './HiddenGroup.tsx'
 import { RovingChips } from './RovingChips.tsx'
 import { SectionSpy } from './SectionSpy.tsx'
 import { SpotlightGroup } from './SpotlightGroup.tsx'
@@ -54,6 +55,14 @@ export const examples: Example[] = [
       'Arrow-key navigation across sibling chips using one keydown listener on the fragment, with focus()/focusLast() providing wrap-around.',
     apis: ['addEventListener', 'focus', 'focusLast', 'blur'],
     Component: RovingChips,
+  },
+  {
+    id: 'hidden-group',
+    title: 'Hidden group',
+    description:
+      'A <Hidden enabled> wrapper that renders no element but applies the HTML hidden attribute to all first-level DOM children, by passing a hand-rolled observer to observeUsing(). Children mounted later are hidden before first paint.',
+    apis: ['observeUsing', 'unobserveUsing'],
+    Component: HiddenGroup,
   },
   {
     id: 'fragment-ghost',

@@ -15,6 +15,7 @@ This app (`npm run dev`) is a tabbed set of demos:
 | Union spotlight | `getClientRects`, `observeUsing` | A live union bounding box drawn around a wrapper-free run of siblings, kept fresh by a ResizeObserver |
 | Scrollspy | `observeUsing`, `scrollIntoView` | A table of contents tracking wrapper-free article sections with IntersectionObservers |
 | Roving focus chips | `addEventListener`, `focus`, `focusLast` | Arrow-key navigation across sibling chips with wrap-around, from a single fragment-level keydown listener |
+| Hidden group | `observeUsing`, `unobserveUsing` | A `<Hidden enabled>` wrapper that renders no element but keeps the HTML `hidden` attribute on all first-level DOM children, via a hand-rolled observer |
 | Ghost in the DOM | `dispatchEvent`, `compareDocumentPosition` | A custom event bubbling from the node-less fragment to its DOM parent, and document-position queries against it |
 
 Only the first two are adapted from the official docs; the rest are original.
@@ -22,6 +23,7 @@ Only the first two are adapted from the official docs; the rest are original.
 Notes from building this:
 
 - The `FragmentInstance` methods are typed via `@types/react-dom`'s `declare module 'react'` augmentation, which only loads if the `react-dom` root module is in the type graph — see `src/fragment-instance.d.ts`, which also declares `compareDocumentPosition` (shipped in react-dom 19.3.0 but missing from `@types/react-dom` 19.3.0).
+- `FragmentInstance` exposes no "list your children" method, but `observeUsing()` accepts any `{ observe, unobserve }` object, not just real observers: react-dom calls `observe(element)` with every current first-level DOM child, again for every child mounted later, and `unobserve(element)` for every child removed — all during the commit phase, before paint. The "Hidden group" example leans on this to maintain the `hidden` attribute on the fragment's children with no flash of unhidden content.
 - Observed quirk in react-dom 19.3.0: `compareDocumentPosition` for a node *following* (or *preceding*) the fragment alternates between the correct bitmask and `DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC` (32) on every other render of the fragment — the internal fiber-tree validation appears to compare fibers across alternate generations. Positions *inside* the fragment are stable. See [`docs/upstream-issue-compare-document-position.md`](./docs/upstream-issue-compare-document-position.md) for a draft bug report and [`docs/repro-compare-document-position.html`](./docs/repro-compare-document-position.html) for a standalone reproduction.
 
 ## Getting started

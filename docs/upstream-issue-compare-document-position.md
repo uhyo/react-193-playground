@@ -106,3 +106,19 @@ generation, so the identity comparisons miss, the search finds nothing,
 validation reports failure, and the fallback 32 is returned. The
 fiber/alternate pair swaps roles on each commit, which matches the observed
 every-other-render alternation exactly.
+
+## Related work (not duplicates)
+
+Searched existing issues/PRs mentioning `compareDocumentPosition` and
+`IMPLEMENTATION_SPECIFIC`; none report this alternating behavior:
+
+- #32722 added `compareDocumentPosition` to fragment instances; #34069 added
+  the fiber-tree validation this report concerns.
+- #37142 fixes an adjacent validation bug (`CONTAINED_BY` accepted DOM that
+  was imperatively moved outside the fiber subtree) by switching to
+  `doesFiberContain`, which does handle alternates — the preceding/following
+  helpers may want the same treatment.
+- #37578/#37579 (`compareDocumentPosition(document)` TypeError),
+  #37162/#37163 (empty fragments / empty portals), and #37606/#37607
+  (portaled fragments in ShadowRoot/DocumentFragment) are different symptoms
+  in the same API.

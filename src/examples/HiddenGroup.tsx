@@ -1,4 +1,4 @@
-import { Fragment, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useState } from 'react'
 import type { FragmentInstance, ReactNode } from 'react'
 
 /**
@@ -9,53 +9,44 @@ import type { FragmentInstance, ReactNode } from 'react'
  * method, but observeUsing() never checks that its argument is a real
  * observer — it calls `observer.observe(element)` with every current
  * first-level DOM child, again for every child mounted later, and
- * `observer.unobserve(element)` for every child removed. All of those
- * calls happen during React's commit phase, before paint. A hand-rolled
- * observer therefore doubles as a live registry of the fragment's
- * children, which is exactly what's needed to manage an attribute.
+ * `observer.unobserve(element)` for every child removed. Symmetrically,
+ * unobserveUsing() calls `observer.unobserve(element)` with every current
+ * child. All of those calls happen during React's commit phase, before
+ * paint.
+ *
+ * That symmetry lets a callback ref with a cleanup carry the whole
+ * component: attaching the ref applies the attribute to every child (and
+ * to any child mounted later), the cleanup strips it from every child.
+ * Keying the callback on `enabled` makes React detach the old observer and
+ * attach a fresh one — closing over the new value — whenever it flips, so
+ * there is no need to keep a registry of children or sync state through
+ * effects and refs.
  */
 function Hidden({ enabled, children }: { enabled: boolean; children: ReactNode }) {
-  const fragmentRef = useRef<FragmentInstance>(null)
-  const enabledRef = useRef(enabled)
-  const [registry] = useState(() => {
-    const elements = new Set<Element>()
-    return {
-      elements,
-      observe(element: Element) {
-        elements.add(element)
-        element.toggleAttribute('hidden', enabledRef.current)
-      },
-      unobserve(element: Element) {
-        elements.delete(element)
-        // Leave detached children clean in case they are moved elsewhere.
-        element.removeAttribute('hidden')
-      },
-      // Never called by react-dom; only here so the object structurally
-      // satisfies the ResizeObserver type that observeUsing() is declared
-      // to accept.
-      disconnect() {},
-    }
-  })
+  const attachObserver = useCallback(
+    (instance: FragmentInstance) => {
+      const observer = {
+        observe(element: Element) {
+          element.toggleAttribute('hidden', enabled)
+        },
+        unobserve(element: Element) {
+          // Leave detached children clean in case they are moved elsewhere.
+          element.removeAttribute('hidden')
+        },
+        // Never called by react-dom; only here so the object structurally
+        // satisfies the ResizeObserver type that observeUsing() is declared
+        // to accept.
+        disconnect() {},
+      }
+      instance.observeUsing(observer)
+      return () => {
+        instance.unobserveUsing(observer)
+      }
+    },
+    [enabled],
+  )
 
-  useLayoutEffect(() => {
-    enabledRef.current = enabled
-    for (const element of registry.elements) {
-      element.toggleAttribute('hidden', enabled)
-    }
-  }, [enabled, registry])
-
-  useLayoutEffect(() => {
-    const instance = fragmentRef.current
-    if (instance === null) {
-      return
-    }
-    instance.observeUsing(registry)
-    return () => {
-      instance.unobserveUsing(registry)
-    }
-  }, [registry])
-
-  return <Fragment ref={fragmentRef}>{children}</Fragment>
+  return <Fragment ref={attachObserver}>{children}</Fragment>
 }
 
 /**
@@ -121,11 +112,15 @@ export function HiddenGroup() {
       </div>
       <p className="note">
         <code>&lt;Hidden&gt;</code> renders no element: the cards stay direct
-        flex items of the row. <code>observeUsing()</code> is passed a plain{' '}
+        flex items of the row. A callback ref on the fragment passes{' '}
+        <code>observeUsing()</code> a plain{' '}
         <code>{'{ observe, unobserve }'}</code> object that toggles the{' '}
         <code>hidden</code> attribute, so children mounted while the group is
         hidden never flash — try “Mount a child” while hidden, then use the
         X-ray to see the attribute sitting on the real, still-mounted DOM.
+        Toggling works by swapping the ref callback itself: React runs the
+        old ref’s cleanup and attaches a new observer, re-visiting every
+        child, all before paint.
         (Unrelated to fragments, but note: the cards’ own{' '}
         <code>display: flex</code> beats the UA’s{' '}
         <code>[hidden] {'{ display: none }'}</code>, so the stylesheet backs
